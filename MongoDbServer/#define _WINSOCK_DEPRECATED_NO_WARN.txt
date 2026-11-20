@@ -1,0 +1,125 @@
+#define _WINSOCK_DEPRECATED_NO_WARNINGS
+#include <iostream>
+#include <string>
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#include <fstream>
+#include <cstdlib>
+
+#pragma comment(lib, "ws2_32.lib")
+
+void SaveToMongoDB(const std::string& data) {
+    // Save to file (backup)
+    std::ofstream file("saved_data.json", std::ios::app);
+    if (file.is_open()) {
+        file << data << std::endl;
+        file.close();
+        std::cout << "[FILE] Data saved to file!" << std::endl;
+    }
+    
+    // Escape quotes for command line
+    std::string escaped_data = data;
+    size_t pos = 0;
+    while ((pos = escaped_data.find("\"", pos)) != std::string::npos) {
+        escaped_data.replace(pos, 1, "\\\"");
+        pos += 2;
+    }
+    
+    // Build command with quotes around the JSON
+    std::string command = "python mongodb_saver.py \"" + escaped_data + "\"";
+    std::cout << "[PYTHON] Command: " << command << std::endl;
+    
+    int result = system(command.c_str());
+    if (result == 0) {
+        std::cout << "[MONGODB] Data saved to MongoDB!" << std::endl;
+    } else {
+        std::cout << "[MONGODB] Failed to save (error code: " << result << ")" << std::endl;
+    }
+}
+
+int main() {
+    std::cout << "===================" << std::endl;
+    std::cout << "  MONGODB SERVER  " << std::endl;
+    std::cout << "===================" << std::endl;
+
+    WSADATA wsaData;
+    if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0) {
+        std::cout << "WSAStartup failed!" << std::endl;
+        return 1;
+    }
+
+    SOCKET serverSocket = socket(AF_INET, SOCK_STREAM, 0);
+    if (serverSocket == INVALID_SOCKET) {
+        std::cout << "Failed to create socket!" << std::endl;
+        WSACleanup();
+        return 1;
+    }
+
+    sockaddr_in serverAddr;
+    serverAddr.sin_family = AF_INET;
+    serverAddr.sin_addr.s_addr = INADDR_ANY;
+    serverAddr.sin_port = htons(8080);
+
+    if (bind(serverSocket, (sockaddr*)&serverAddr, sizeof(serverAddr)) == SOCKET_ERROR) {
+        std::cout << "Failed to bind port 8080!" << std::endl;
+        closesocket(serverSocket);
+        WSACleanup();
+        return 1;
+    }
+
+    if (listen(serverSocket, 5) == SOCKET_ERROR) {
+        std::cout << "Failed to listen!" << std::endl;
+        closesocket(serverSocket);
+        WSACleanup();
+        return 1;
+    }
+
+    std::cout << "[SUCCESS] Server started on port 8080" << std::endl;
+
+    char hostname[256];
+    gethostname(hostname, sizeof(hostname));
+    struct hostent* host = gethostbyname(hostname);
+    if (host) {
+        struct in_addr addr;
+        addr.s_addr = *(u_long*)host->h_addr_list[0];
+        std::cout << "[INFO] Your IP: " << inet_ntoa(addr) << std::endl;
+    }
+
+    std::cout << "[INFO] Waiting for connections..." << std::endl;
+    std::cout << std::endl;
+
+    while (true) {
+        SOCKET clientSocket = accept(serverSocket, NULL, NULL);
+        if (clientSocket == INVALID_SOCKET) {
+            continue;
+        }
+
+        std::cout << "[CLIENT] Connected!" << std::endl;
+
+        char buffer[4096] = { 0 };
+        int bytesReceived = recv(clientSocket, buffer, sizeof(buffer) - 1, 0);
+
+        if (bytesReceived > 0) {
+            std::string data(buffer);
+            std::cout << "[RECEIVED] " << data << std::endl;
+
+            SaveToMongoDB(data);
+
+            std::string response = "SAVED";
+            send(clientSocket, response.c_str(), (int)response.length(), 0);
+            std::cout << "[RESPONSE] SAVED sent" << std::endl;
+        }
+
+        closesocket(clientSocket);
+        std::cout << "[CLIENT] Disconnected" << std::endl;
+        std::cout << std::endl;
+    }
+
+    closesocket(serverSocket);
+    WSACleanup();
+    return 0;
+}
+
+
+
+original
