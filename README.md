@@ -2,14 +2,14 @@
 ## Networking & Persistence Module
 
 ### Architecture
-- **Server** (`networking/server.py`) runs on the host machine.
+- **Server** (`networking/MongoDbServer.cpp`) runs on the host machine.
   It owns the MongoDB connection and handles all persistence.
-- **Client** (`networking/client.py`) runs on the player's machine.
+- **Client** (`networking/GameLauncher.cpp`) runs on the player's machine calling (mongodb_saver.py).
   It sends `SAVE` / `LOAD` commands over TCP and never touches the database directly.
 - **MongoDB** stores one document per player in `game_db.players`.
 
 ### Message protocol
-Commands are newline-terminated ASCII strings:
+Commands are JSON over TCP:
 
 | Command | Format | Response |
 |---|---|---|
