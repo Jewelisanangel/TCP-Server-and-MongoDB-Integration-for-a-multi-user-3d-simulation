@@ -1,0 +1,25 @@
+# Build output
+x64/
+Debug/
+Release/
+.vs/
+*.obj
+*.pdb
+*.idb
+*.tlog
+*.log
+
+# VS per-user state
+DocumentLayout.json
+DocumentLayout.backup.json
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# Debug / test artifacts (do NOT commit)
+temp_data.json
+response.json
+saved_data.json
+server_config.py
