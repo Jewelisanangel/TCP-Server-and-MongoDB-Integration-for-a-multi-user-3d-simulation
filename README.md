@@ -24,3 +24,8 @@ Commands are JSON over TCP:
   "health": 100,
   "last_saved": "2026-11-20T10:00:00Z"
 }
+
+### Design Decisions & Limitations
+- **Why JSON over TCP?** We chose JSON because it is lightweight, human-readable, and easy to parse in both C++ and Python without needing heavy external libraries. 
+- **Why a C++ to Python bridge for MongoDB?** We used a C++ socket server (`MongoDbServer.cpp`) to receive the network traffic, but delegated the database operations to a Python script (`mongodb_saver.py`) using `pymongo`. This was a deliberate choice because `pymongo` is much simpler to implement than the C++ MongoDB driver (mongocxx), allowing us to meet our tight 10-day deadline while ensuring database stability.
+- **Security Limitations:** This project is designed for a local LAN demonstration. Passwords are currently transmitted in plaintext over TCP, and player credentials are stored without hashing in MongoDB. A production version would implement TLS and password hashing (e.g., bcrypt).
