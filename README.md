@@ -26,6 +26,7 @@ Commands are JSON over TCP:
 }
 
 ### Design Decisions & Limitations
-- **Why JSON over TCP?** We chose JSON because it is lightweight, human-readable, and easy to parse in both C++ and Python without needing heavy external libraries. 
+- **Why JSON over TCP?** We chose JSON because it is lightweight, human-readable, and easy to parse in both C++ and Python without needing heavy external libraries.
 - **Why a C++ to Python bridge for MongoDB?** We used a C++ socket server (`MongoDbServer.cpp`) to receive the network traffic, but delegated the database operations to a Python script (`mongodb_saver.py`) using `pymongo`. This was a deliberate choice because `pymongo` is much simpler to implement than the C++ MongoDB driver (mongocxx), allowing us to meet our tight 10-day deadline while ensuring database stability.
-- **Security Limitations:** This project is designed for a local LAN demonstration. Passwords are currently transmitted in plaintext over TCP, and player credentials are stored without hashing in MongoDB. A production version would implement TLS and password hashing (e.g., bcrypt).
+- **Security (Passwords):** Passwords are **hashed** before being stored in the database, ensuring that user credentials are not saved in plaintext on the server or in MongoDB.
+- **Security Limitations (Network):** While passwords are hashed at rest, the custom TCP protocol does not currently use TLS/SSL encryption. For a production environment, the network layer would need to be secured (e.g., wrapping the socket in TLS) to prevent man-in-the-middle attacks.
